@@ -38,7 +38,7 @@
 <input type="file" id="csvFileInput" accept=".csv">
 
 <label for="startRowInput">Da quale numero di riga vuoi iniziare a visualizzare?</label>
-<input type="number" id="startRowInput" min="1" value="1">
+<input type="number" id="startRowInput" min="2" value="2">
 
 <button id="startButton">Inizia</button>
 
@@ -50,20 +50,21 @@
 // Variabili globali per i dati CSV e l'indice della riga corrente
 let csvData = [];
 let currentRow = 0;
+let headers = [];
 
 // Event listener per il pulsante "Inizia"
 document.getElementById('startButton').addEventListener('click', function() {
     const startRowInput = document.getElementById('startRowInput');
-    const startRow = parseInt(startRowInput.value, 10) - 1; // L'indice dell'array inizia da 0
-    if (isNaN(startRow) || startRow < 0) {
-        alert('Per favore inserisci un numero di riga valido.');
+    const startRow = parseInt(startRowInput.value, 10);
+    if (isNaN(startRow) || startRow < 2) {
+        alert('Per favore inserisci un numero di riga valido (almeno 2).');
         return;
     }
     if (csvData.length === 0) {
         alert('Per favore carica prima un file CSV.');
         return;
     }
-    currentRow = startRow;
+    currentRow = startRow - 2; // Sottraiamo 2 perché l'indice dell'array inizia da 0 e la prima riga è l'intestazione
     displayRowData(currentRow);
     document.getElementById('nextRowButton').style.display = 'inline-block';
 });
@@ -88,7 +89,12 @@ document.getElementById('csvFileInput').addEventListener('change', function(even
     reader.onload = function(e) {
         const text = e.target.result;
         csvData = parseCSV(text);
-        alert('File CSV caricato con successo.');
+        if (csvData.length > 0) {
+            headers = csvData[0]; // Salviamo le intestazioni
+            alert('File CSV caricato con successo.');
+        } else {
+            alert('Il file CSV è vuoto o non valido.');
+        }
     };
     reader.readAsText(file);
 });
@@ -109,13 +115,13 @@ function parseCSV(text) {
 function displayRowData(rowIndex) {
     const dataDisplay = document.getElementById('dataDisplay');
     dataDisplay.innerHTML = '';
-    const headers = csvData[0];
-    const row = csvData[rowIndex];
 
-    if (!row) {
+    if (!csvData[rowIndex + 1]) {
         dataDisplay.innerHTML = '<p>Nessun dato da mostrare.</p>';
         return;
     }
+
+    const row = csvData[rowIndex + 1]; // +1 perché la prima riga è l'intestazione
 
     // Trova gli indici delle colonne di interesse
     const denominazioneIndex = headers.indexOf('Denominazione cliente');
