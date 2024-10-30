@@ -107,11 +107,11 @@ function parseCSV(text) {
         if (line.trim() === '') continue; // Salta le righe vuote
         const values = line.split(';'); // Supponendo che il separatore sia il punto e virgola
         if (i === 0) {
-            headers = values; // Salviamo le intestazioni dalla prima riga
+            headers = values.map(header => header.trim()); // Salviamo le intestazioni dalla prima riga, rimuovendo spazi extra
         } else {
             const obj = {};
             for (let j = 0; j < headers.length; j++) {
-                obj[headers[j]] = values[j];
+                obj[headers[j]] = values[j] ? values[j].trim() : ''; // Rimuoviamo spazi extra dai valori
             }
             csvData.push(obj);
         }
@@ -130,26 +130,32 @@ function displayRowData(rowIndex) {
         return;
     }
 
-    // Campi di interesse
-    const fieldsOfInterest = [
-        'Denominazione cliente',
-        'Data emissione',
-        'Descrizione',
-        'Imponibile/Importo (totale in euro)',
-        'Numero fattura / Documento'
-    ];
+    // Campi di interesse con possibili varianti di nome
+    const fieldsOfInterest = {
+        'Denominazione cliente': ['Denominazione cliente'],
+        'Data emissione': ['Data emissione', 'Data di emissione'],
+        'Descrizione': ['Descrizione'],
+        'Imponibile/Importo (totale in euro)': ['Imponibile', 'Importo (totale in euro)', 'Imponibile/Importo (totale in euro)'],
+        'Numero fattura / Documento': ['Numero fattura', 'Documento', 'Numero fattura / Documento']
+    };
 
-    for (const field of fieldsOfInterest) {
-        if (row.hasOwnProperty(field)) {
+    for (const [displayName, possibleFieldNames] of Object.entries(fieldsOfInterest)) {
+        let fieldFound = false;
+        for (const fieldName of possibleFieldNames) {
+            if (row.hasOwnProperty(fieldName)) {
+                const value = row[fieldName];
+                const div = document.createElement('div');
+                div.className = 'dataItem';
+                div.innerHTML = `<span class="dataLabel">${displayName}:</span> ${value || 'Campo non disponibile'}`;
+                dataDisplay.appendChild(div);
+                fieldFound = true;
+                break;
+            }
+        }
+        if (!fieldFound) {
             const div = document.createElement('div');
             div.className = 'dataItem';
-            div.innerHTML = `<span class="dataLabel">${field}:</span> ${row[field]}`;
-            dataDisplay.appendChild(div);
-        } else {
-            // Se il campo non esiste, mostriamo un messaggio
-            const div = document.createElement('div');
-            div.className = 'dataItem';
-            div.innerHTML = `<span class="dataLabel">${field}:</span> Campo non disponibile`;
+            div.innerHTML = `<span class="dataLabel">${displayName}:</span> Campo non disponibile`;
             dataDisplay.appendChild(div);
         }
     }
