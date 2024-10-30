@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Visualizzatore CSV</title>
+<style>
+    /* Stile di base per una migliore visualizzazione */
+    body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+    }
+    label {
+        display: block;
+        margin-top: 10px;
+    }
+    input[type="number"] {
+        width: 60px;
+    }
+    #dataDisplay {
+        margin-top: 20px;
+    }
+    .dataItem {
+        margin-bottom: 10px;
+    }
+    .dataLabel {
+        font-weight: bold;
+    }
+    button {
+        margin-top: 20px;
+    }
+</style>
+</head>
+<body>
+
+<h1>Visualizzatore CSV</h1>
+
+<label for="csvFileInput">Carica il file CSV:</label>
+<input type="file" id="csvFileInput" accept=".csv">
+
+<label for="startRowInput">Da quale numero di riga vuoi iniziare a visualizzare?</label>
+<input type="number" id="startRowInput" min="1" value="1">
+
+<button id="startButton">Inizia</button>
+
+<div id="dataDisplay"></div>
+
+<button id="nextRowButton" style="display:none;">Prossima Riga</button>
+
+<script>
+// Variabili globali per i dati CSV e l'indice della riga corrente
+let csvData = [];
+let currentRow = 0;
+
+// Event listener per il pulsante "Inizia"
+document.getElementById('startButton').addEventListener('click', function() {
+    const startRowInput = document.getElementById('startRowInput');
+    const startRow = parseInt(startRowInput.value, 10) - 1; // L'indice dell'array inizia da 0
+    if (isNaN(startRow) || startRow < 0) {
+        alert('Per favore inserisci un numero di riga valido.');
+        return;
+    }
+    if (csvData.length === 0) {
+        alert('Per favore carica prima un file CSV.');
+        return;
+    }
+    currentRow = startRow;
+    displayRowData(currentRow);
+    document.getElementById('nextRowButton').style.display = 'inline-block';
+});
+
+// Event listener per il pulsante "Prossima Riga"
+document.getElementById('nextRowButton').addEventListener('click', function() {
+    currentRow++;
+    if (currentRow >= csvData.length) {
+        alert('Non ci sono più righe.');
+        return;
+    }
+    displayRowData(currentRow);
+});
+
+// Event listener per il caricamento del file CSV
+document.getElementById('csvFileInput').addEventListener('change', function(event) {
+    const file = event.target.files[0];
+    if (!file) {
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const text = e.target.result;
+        csvData = parseCSV(text);
+        alert('File CSV caricato con successo.');
+    };
+    reader.readAsText(file);
+});
+
+// Funzione per il parsing del CSV
+function parseCSV(text) {
+    const lines = text.split(/\r?\n/);
+    const result = [];
+    for (const line of lines) {
+        if (line.trim() === '') continue; // Salta le righe vuote
+        const values = line.split(';'); // Supponendo che il separatore sia il punto e virgola
+        result.push(values);
+    }
+    return result;
+}
+
+// Funzione per visualizzare i dati di una riga specifica
+function displayRowData(rowIndex) {
+    const dataDisplay = document.getElementById('dataDisplay');
+    dataDisplay.innerHTML = '';
+    const headers = csvData[0];
+    const row = csvData[rowIndex];
+
+    if (!row) {
+        dataDisplay.innerHTML = '<p>Nessun dato da mostrare.</p>';
+        return;
+    }
+
+    // Trova gli indici delle colonne di interesse
+    const denominazioneIndex = headers.indexOf('Denominazione cliente');
+    const dataEmissioneIndex = headers.indexOf('Data di emissione');
+    const descrizioneIndex = headers.indexOf('Descrizione');
+    const imponibileIndex = headers.indexOf('Imponibile');
+    const numeroFatturaIndex = headers.indexOf('Numero Fattura');
+
+    if (denominazioneIndex === -1 || dataEmissioneIndex === -1 || descrizioneIndex === -1 || imponibileIndex === -1 || numeroFatturaIndex === -1) {
+        dataDisplay.innerHTML = '<p>Il file CSV non contiene le intestazioni richieste.</p>';
+        return;
+    }
+
+    const dataItems = [
+        { label: 'Denominazione cliente', value: row[denominazioneIndex] },
+        { label: 'Data di emissione', value: row[dataEmissioneIndex] },
+        { label: 'Descrizione', value: row[descrizioneIndex] },
+        { label: 'Imponibile', value: row[imponibileIndex] },
+        { label: 'Numero Fattura', value: row[numeroFatturaIndex] },
+    ];
+
+    for (const item of dataItems) {
+        const div = document.createElement('div');
+        div.className = 'dataItem';
+        div.innerHTML = `<span class="dataLabel">${item.label}:</span> ${item.value}`;
+        dataDisplay.appendChild(div);
+    }
+}
+</script>
+
+</body>
+</html>
