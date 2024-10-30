@@ -38,7 +38,7 @@
 <input type="file" id="csvFileInput" accept=".csv">
 
 <label for="startRowInput">Da quale numero di riga vuoi iniziare a visualizzare?</label>
-<input type="number" id="startRowInput" min="2" value="2">
+<input type="number" id="startRowInput" min="1" value="1">
 
 <button id="startButton">Inizia</button>
 
@@ -55,16 +55,20 @@ let headers = [];
 // Event listener per il pulsante "Inizia"
 document.getElementById('startButton').addEventListener('click', function() {
     const startRowInput = document.getElementById('startRowInput');
-    const startRow = parseInt(startRowInput.value, 10);
-    if (isNaN(startRow) || startRow < 2) {
-        alert('Per favore inserisci un numero di riga valido (almeno 2).');
+    const startRow = parseInt(startRowInput.value, 10) - 1; // Sottraiamo 1 perché l'indice dell'array inizia da 0
+    if (isNaN(startRow) || startRow < 0) {
+        alert('Per favore inserisci un numero di riga valido.');
         return;
     }
     if (csvData.length === 0) {
         alert('Per favore carica prima un file CSV.');
         return;
     }
-    currentRow = startRow - 2; // Sottraiamo 2 perché l'indice dell'array inizia da 0 e la prima riga è l'intestazione
+    if (startRow >= csvData.length) {
+        alert('Il numero di riga inserito supera il numero totale di righe nel CSV.');
+        return;
+    }
+    currentRow = startRow;
     displayRowData(currentRow);
     document.getElementById('nextRowButton').style.display = 'inline-block';
 });
@@ -88,13 +92,8 @@ document.getElementById('csvFileInput').addEventListener('change', function(even
     const reader = new FileReader();
     reader.onload = function(e) {
         const text = e.target.result;
-        csvData = parseCSV(text);
-        if (csvData.length > 0) {
-            headers = csvData[0]; // Salviamo le intestazioni
-            alert('File CSV caricato con successo.');
-        } else {
-            alert('Il file CSV è vuoto o non valido.');
-        }
+        parseCSV(text);
+        alert('File CSV caricato con successo.');
     };
     reader.readAsText(file);
 });
@@ -102,13 +101,21 @@ document.getElementById('csvFileInput').addEventListener('change', function(even
 // Funzione per il parsing del CSV
 function parseCSV(text) {
     const lines = text.split(/\r?\n/);
-    const result = [];
-    for (const line of lines) {
+    csvData = [];
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
         if (line.trim() === '') continue; // Salta le righe vuote
         const values = line.split(';'); // Supponendo che il separatore sia il punto e virgola
-        result.push(values);
+        if (i === 0) {
+            headers = values; // Salviamo le intestazioni dalla prima riga
+        } else {
+            const obj = {};
+            for (let j = 0; j < headers.length; j++) {
+                obj[headers[j]] = values[j];
+            }
+            csvData.push(obj);
+        }
     }
-    return result;
 }
 
 // Funzione per visualizzare i dati di una riga specifica
@@ -116,38 +123,35 @@ function displayRowData(rowIndex) {
     const dataDisplay = document.getElementById('dataDisplay');
     dataDisplay.innerHTML = '';
 
-    if (!csvData[rowIndex + 1]) {
+    const row = csvData[rowIndex];
+
+    if (!row) {
         dataDisplay.innerHTML = '<p>Nessun dato da mostrare.</p>';
         return;
     }
 
-    const row = csvData[rowIndex + 1]; // +1 perché la prima riga è l'intestazione
-
-    // Trova gli indici delle colonne di interesse
-    const denominazioneIndex = headers.indexOf('Denominazione cliente');
-    const dataEmissioneIndex = headers.indexOf('Data di emissione');
-    const descrizioneIndex = headers.indexOf('Descrizione');
-    const imponibileIndex = headers.indexOf('Imponibile');
-    const numeroFatturaIndex = headers.indexOf('Numero Fattura');
-
-    if (denominazioneIndex === -1 || dataEmissioneIndex === -1 || descrizioneIndex === -1 || imponibileIndex === -1 || numeroFatturaIndex === -1) {
-        dataDisplay.innerHTML = '<p>Il file CSV non contiene le intestazioni richieste.</p>';
-        return;
-    }
-
-    const dataItems = [
-        { label: 'Denominazione cliente', value: row[denominazioneIndex] },
-        { label: 'Data di emissione', value: row[dataEmissioneIndex] },
-        { label: 'Descrizione', value: row[descrizioneIndex] },
-        { label: 'Imponibile', value: row[imponibileIndex] },
-        { label: 'Numero Fattura', value: row[numeroFatturaIndex] },
+    // Campi di interesse
+    const fieldsOfInterest = [
+        'Denominazione cliente',
+        'Data di emissione',
+        'Descrizione',
+        'Imponibile',
+        'Numero Fattura'
     ];
 
-    for (const item of dataItems) {
-        const div = document.createElement('div');
-        div.className = 'dataItem';
-        div.innerHTML = `<span class="dataLabel">${item.label}:</span> ${item.value}`;
-        dataDisplay.appendChild(div);
+    for (const field of fieldsOfInterest) {
+        if (row.hasOwnProperty(field)) {
+            const div = document.createElement('div');
+            div.className = 'dataItem';
+            div.innerHTML = `<span class="dataLabel">${field}:</span> ${row[field]}`;
+            dataDisplay.appendChild(div);
+        } else {
+            // Se il campo non esiste, mostriamo un messaggio
+            const div = document.createElement('div');
+            div.className = 'dataItem';
+            div.innerHTML = `<span class="dataLabel">${field}:</span> Campo non disponibile`;
+            dataDisplay.appendChild(div);
+        }
     }
 }
 </script>
